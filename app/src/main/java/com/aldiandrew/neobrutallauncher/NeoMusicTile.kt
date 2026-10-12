@@ -93,7 +93,8 @@ fun NeoMusicTile(
     modifier: Modifier = Modifier,
     background: Color = MaterialTheme.colorScheme.surface,
     textColor: Color = MaterialTheme.colorScheme.onSurface,
-    onLongClick: (() -> Unit)? = null
+    onLongClick: (() -> Unit)? = null,
+    interactionEnabled: Boolean = true
 ) {
     var hasAccess by remember { mutableStateOf(hasMusicAccess(context)) }
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -144,7 +145,9 @@ fun NeoMusicTile(
                 openMusicPlayer(context, musicPackage)
             }
         }
-    val tileModifier = if (onLongClick == null) {
+    val tileModifier = if (!interactionEnabled) {
+        modifier
+    } else if (onLongClick == null) {
         modifier.clickable(onClick = tileClick)
     } else {
         modifier.combinedClickable(onClick = tileClick, onLongClick = onLongClick)

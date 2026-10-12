@@ -138,7 +138,7 @@ fun LivePage(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     NeoQuoteTile(
-                        quote = NeoQuotes.pairForRotation(quoteRotation).second,
+                        quote = NeoQuotes.quoteForRotation(quoteRotation, 2),
                         modifier = Modifier.weight(1f).height(112.dp),
                         emphasized = false,
                         paletteIndex = quoteRotation + 1,
@@ -155,7 +155,7 @@ fun LivePage(
                 }
             } else {
                 NeoQuoteTile(
-                    quote = NeoQuotes.pairForRotation(quoteRotation).second,
+                    quote = NeoQuotes.quoteForRotation(quoteRotation, 2),
                     modifier = Modifier.fillMaxWidth().height(132.dp),
                     emphasized = true,
                     paletteIndex = quoteRotation + 1,

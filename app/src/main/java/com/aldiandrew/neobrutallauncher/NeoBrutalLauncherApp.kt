@@ -952,7 +952,8 @@ private fun HomeScreen(
                                                 size = tileSizes["home_music"] ?: NeoTileSize.FOUR_BY_ONE,
                                                 label = "MUSIC"
                                             ) {}
-                                        }
+                                        },
+                                        interactionEnabled = !tileEditMode
                                     )
                                 }
                             )

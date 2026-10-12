@@ -218,31 +218,8 @@ fun NeoTileGrid(
                         }
                         .width(placement.width)
                         .height(placement.height)
-                        .combinedClickable(
-                            onClick = {
-                                if (editMode) {
-                                    onTileEdit(placement.tile)
-                                } else {
-                                    placement.tile.onClick?.invoke()
-                                }
-                            },
-                            onLongClick = { onTileLongPress(placement.tile) }
-                        )
-                ) {
-                    placement.tile.content()
-
-                    if (editMode) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(5.dp)
-                                .size(width = 38.dp, height = 22.dp)
-                            .background(BrutalColors.Yellow)
-                            .border(
-                                width = 2.dp,
-                                color = BrutalColors.Ink
-                            )
-                            .pointerInput(placement.tile.id) {
+                        .pointerInput(editMode, placement.tile.id) {
+                            if (editMode) {
                                 detectDragGestures(
                                     onDragStart = {
                                         draggedId = placement.tile.id
@@ -320,8 +297,34 @@ fun NeoTileGrid(
                                 ) { _, amount ->
                                     dragDelta += amount
                                 }
+                            
+                            }
+                        }
+                        .combinedClickable(
+                            onClick = {
+                                if (editMode) {
+                                    onTileEdit(placement.tile)
+                                } else {
+                                    placement.tile.onClick?.invoke()
+                                }
                             },
-                        contentAlignment = Alignment.Center
+                            onLongClick = { onTileLongPress(placement.tile) }
+                        )
+                ) {
+                    placement.tile.content()
+
+                    if (editMode) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(5.dp)
+                                .size(width = 38.dp, height = 22.dp)
+                            .background(BrutalColors.Yellow)
+                            .border(
+                                width = 2.dp,
+                                color = BrutalColors.Ink
+                            ),
+                            contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "MOVE",

@@ -18,10 +18,13 @@ object NeoQuotes {
 
     fun builtInQuotes(): List<String> = defaultQuotes
 
-    fun pairForRotation(rotation: Int): Pair<String, String> {
-        val offset = Math.floorMod(rotation, defaultQuotes.size)
-        return defaultQuotes[offset] to defaultQuotes[(offset + 1) % defaultQuotes.size]
+    fun quoteForRotation(rotation: Int, slot: Int): String {
+        val index = Math.floorMod(rotation + slot, defaultQuotes.size)
+        return defaultQuotes[index]
     }
+
+    fun pairForRotation(rotation: Int): Pair<String, String> =
+        quoteForRotation(rotation, 0) to quoteForRotation(rotation, 1)
 
     fun paletteForRotation(rotation: Int): NeoQuotePalette {
         val backgrounds = BrutalColors.appPalette(0)
