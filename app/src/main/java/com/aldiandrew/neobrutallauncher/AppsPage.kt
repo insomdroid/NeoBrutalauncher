@@ -14,7 +14,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -74,10 +73,6 @@ fun AppsPage(
     var scrubLetter by remember { mutableStateOf<Char?>(null) }
     var contextApp by remember { mutableStateOf<AppInfo?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
-    val layoutDirection = LocalLayoutDirection.current
-    val systemGestureEndInset = WindowInsets.systemGestures
-        .asPaddingValues()
-        .calculateEndPadding(layoutDirection)
 
     fun firstIndexForLetter(letter: Char): Int {
         if (sortedApps.isEmpty()) return 0
@@ -109,7 +104,7 @@ fun AppsPage(
                 top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp,
                 bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp,
                 start = 16.dp,
-                end = maxOf(16.dp, systemGestureEndInset + 8.dp)
+                end = 32.dp
             )
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
