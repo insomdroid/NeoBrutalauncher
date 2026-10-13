@@ -1,6 +1,5 @@
 package com.aldiandrew.neobrutallauncher
 
-import androidx.activity.compose.BackHandler
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -15,6 +14,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,11 +59,8 @@ private val Alphabet = ('A'..'Z').toList()
 fun AppsPage(
     apps: List<AppInfo>,
     favorites: Set<String>,
-    onLaunch: (AppInfo) -> Unit,
-    onOpenHome: () -> Unit
+    onLaunch: (AppInfo) -> Unit
 ) {
-    BackHandler(onBack = onOpenHome)
-
     var searchOpen by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     // AppRepository already returns apps sorted by case-insensitive label.
@@ -77,6 +74,10 @@ fun AppsPage(
     var scrubLetter by remember { mutableStateOf<Char?>(null) }
     var contextApp by remember { mutableStateOf<AppInfo?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
+    val layoutDirection = LocalLayoutDirection.current
+    val systemGestureEndInset = WindowInsets.systemGestures
+        .asPaddingValues()
+        .calculateEndPadding(layoutDirection)
 
     fun firstIndexForLetter(letter: Char): Int {
         if (sortedApps.isEmpty()) return 0
@@ -108,7 +109,7 @@ fun AppsPage(
                 top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp,
                 bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp,
                 start = 16.dp,
-                end = 16.dp
+                end = maxOf(16.dp, systemGestureEndInset + 8.dp)
             )
     ) {
         Column(modifier = Modifier.fillMaxSize()) {

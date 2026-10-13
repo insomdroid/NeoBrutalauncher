@@ -1,6 +1,5 @@
 package com.aldiandrew.neobrutallauncher
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -42,11 +41,8 @@ fun LivePage(
     onRefreshWeather: () -> Unit,
     use24Hour: Boolean,
     showAmPm: Boolean,
-    onSelectChatPackage: (String) -> Unit,
-    onOpenHome: () -> Unit
+    onSelectChatPackage: (String) -> Unit
 ) {
-    BackHandler(onBack = onOpenHome)
-
     val context = androidx.compose.ui.platform.LocalContext.current
     var showChatAppPicker by remember { mutableStateOf(false) }
     val chatCandidates = remember(apps) {

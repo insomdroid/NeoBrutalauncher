@@ -260,6 +260,15 @@ fun NeoBrutalLauncherApp() {
         refreshApps()
     }
 
+    // Centralize system Back handling so pager pages cannot register competing callbacks.
+    BackHandler(enabled = onboardingCompleted) {
+        when {
+            settingsOpen -> settingsOpen = false
+            currentPage != 0 -> currentPage = 0
+            else -> Unit
+        }
+    }
+
     when {
         !onboardingCompleted -> {
             NeoBrutalTheme(
@@ -533,7 +542,6 @@ fun NeoBrutalLauncherApp() {
                             apps = apps,
                             favorites = favorites,
                             onLaunch = ::requestLaunch,
-                            onOpenHome = { currentPage = 0 }
                         )
                     } else {
                         LivePage(
@@ -551,7 +559,6 @@ fun NeoBrutalLauncherApp() {
                                 NeoChatNotificationStore.setSelectedPackages(normalized)
                                 NeoNotificationServiceRegistry.service?.refreshChatNotifications()
                             },
-                            onOpenHome = { currentPage = 0 }
                         )
                     }
                     }
@@ -691,8 +698,6 @@ private fun HomeScreen(
     tileSizes: Map<String, NeoTileSize>,
     onTileSizeChange: (String, NeoTileSize) -> Unit,
 ) {
-    BackHandler(onBack = {})
-
     val context = androidx.compose.ui.platform.LocalContext.current
     val preferences = remember { LauncherPreferences(context) }
     val now = rememberMinuteClock()
