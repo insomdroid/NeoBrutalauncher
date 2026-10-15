@@ -334,6 +334,13 @@ class LauncherPreferences(context: Context) {
         prefs.edit().putBoolean(KEY_SETTINGS_SWIPE, value).apply()
     }
 
+    fun swipeDownNotifications(): Boolean =
+        prefs.getBoolean(KEY_SWIPE_DOWN_NOTIFICATIONS, true)
+
+    fun setSwipeDownNotifications(value: Boolean) {
+        prefs.edit().putBoolean(KEY_SWIPE_DOWN_NOTIFICATIONS, value).apply()
+    }
+
     fun homeClockDoubleTapEnabled(): Boolean = prefs.getBoolean(KEY_HOME_CLOCK_DOUBLE_TAP, true)
     fun setHomeClockDoubleTapEnabled(value: Boolean) {
         prefs.edit().putBoolean(KEY_HOME_CLOCK_DOUBLE_TAP, value).apply()
@@ -513,6 +520,7 @@ class LauncherPreferences(context: Context) {
             remove(KEY_MOTION_SMOOTHNESS)
             remove(KEY_REDUCE_MOTION)
             remove(KEY_SETTINGS_SWIPE)
+            remove(KEY_SWIPE_DOWN_NOTIFICATIONS)
             remove(KEY_HOME_CLOCK_DOUBLE_TAP)
             remove(KEY_HOME_CLOCK_LONG_PRESS)
             remove(KEY_HOME_APPS_INITIALIZED)
@@ -603,6 +611,7 @@ class LauncherPreferences(context: Context) {
         private const val KEY_MOTION_SMOOTHNESS = "motion_smoothness"
         private const val KEY_REDUCE_MOTION = "reduce_motion"
         private const val KEY_SETTINGS_SWIPE = "settings_swipe_enabled"
+        private const val KEY_SWIPE_DOWN_NOTIFICATIONS = "swipe_down_notifications_enabled"
         private const val KEY_HOME_CLOCK_DOUBLE_TAP = "home_clock_double_tap_enabled"
         private const val KEY_HOME_CLOCK_LONG_PRESS = "home_clock_long_press_enabled"
         private const val KEY_HOME_APPS_INITIALIZED = "home_apps_initialized"
