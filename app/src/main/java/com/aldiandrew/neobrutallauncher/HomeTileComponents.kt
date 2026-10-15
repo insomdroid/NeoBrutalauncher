@@ -171,11 +171,8 @@ fun NeoQuoteTile(
     }
 }
 
-internal fun appTileLayoutVariant(app: AppInfo, tileSize: NeoTileSize): Int {
-    // Stable per app + size: no random layout changes across recomposition or restarts.
-    val layoutKey = app.packageName + "/" + app.activityName + ":" + tileSize.name
-    return Math.floorMod(layoutKey.hashCode(), 5)
-}
+internal fun appTileLayoutVariant(app: AppInfo, tileSize: NeoTileSize): Int =
+    HomeTileLayoutRules.variant(app.packageName, app.activityName, tileSize.name)
 
 @Composable
 internal fun AppTile(
