@@ -17,7 +17,7 @@ enum class DesignPreset(val label: String) {
 
 class LauncherPreferences(context: Context) {
 
-    private val prefs = context.getSharedPreferences(
+    internal val prefs = context.getSharedPreferences(
         "neo_brutal_launcher_preferences",
         Context.MODE_PRIVATE
     )
@@ -100,12 +100,9 @@ class LauncherPreferences(context: Context) {
         prefs.edit().putInt(KEY_HOME_APP_COUNT, normalizePinnedCount(value)).apply()
     }
 
-    private fun normalizePinnedCount(value: Int): Int {
-        return when (value) {
-            in Int.MIN_VALUE..3 -> 3
-            else -> 5
-        }
-    }
+    private fun normalizePinnedCount(value: Int): Int =
+        LauncherPreferenceRules.normalizePinnedCount(value)
+
 
     fun showWeather(): Boolean {
         return prefs.getBoolean(KEY_WEATHER, false)
@@ -351,147 +348,9 @@ class LauncherPreferences(context: Context) {
         prefs.edit().putBoolean(KEY_HOME_CLOCK_LONG_PRESS, value).apply()
     }
 
-    fun exportBackupJson(): String {
-        val root = JSONObject()
-            .put("schemaVersion", 1)
-            .put("theme", theme().name)
-            .put("designPreset", designPreset().name)
-            .put("use24Hour", use24Hour())
-            .put("showAmPm", showAmPm())
-                        .put("homeAppCount", homeAppCount())
-                                    .put("showWeather", showWeather())
-            .put("chatNotificationPackages", JSONArray(chatNotificationPackages()))
-            .put("favorites", JSONArray(favorites().toList()))
-            .put("tilePositions", JSONObject().apply {
-                tilePositions().forEach { (id, position) ->
-                    put(id, JSONObject().put("column", position.column).put("row", position.row))
-                }
-            })
-            .put("tileSizes", JSONObject().apply {
-                tileSizes().forEach { (id, tileSize) -> put(id, tileSize.name) }
-            })
-            .put("appTileContentMode", appTileContentMode().name)
-            .put("typographyStyle", typographyStyle().name)
-            .put("wallpaperUri", wallpaperUri())
-            .put("homeAppOrder", JSONArray(homeAppOrder()))
-            .put("excludedHomeApps", JSONArray(excludedHomeApps().toList()))
-            .put("noteItems", itemsToJson(noteItems()))
-            .put("taskItems", itemsToJson(taskItems()))
-            .put("iconPackPackage", iconPackPackage())
-            .put("motionSmoothness", motionSmoothness().name)
-            .put("reduceMotion", reduceMotion())
-        return root.toString()
-    }
+    fun exportBackupJson(): String = LauncherBackupManager(this).exportBackupJson()
 
-    fun importBackupJson(raw: String): Boolean {
-        if (raw.length > 512 * 1024) return false
-        return runCatching {
-            val root = JSONObject(raw)
-            require(root.optInt("schemaVersion", -1) == 1)
-            val theme = runCatching { ThemePreference.valueOf(root.optString("theme")) }.getOrDefault(ThemePreference.SYSTEM)
-            val designPreset = runCatching {
-                DesignPreset.valueOf(root.optString("designPreset", DesignPreset.NEO_BRUTAL_CLASSIC.name))
-            }.getOrDefault(DesignPreset.NEO_BRUTAL_CLASSIC)
-            val contentMode = runCatching { TileContentMode.valueOf(root.optString("appTileContentMode")) }.getOrDefault(TileContentMode.ICON_TEXT)
-            val typography = when (root.optString("typographyStyle")) {
-                TypographyStyle.CONDENSED.name -> TypographyStyle.CONDENSED
-                else -> TypographyStyle.DEFAULT
-            }
-            val count = normalizePinnedCount(root.optInt("homeAppCount", 5))
-            val motionSmoothness = runCatching {
-                MotionSmoothness.valueOf(
-                    root.optString("motionSmoothness", MotionSmoothness.BALANCED.name)
-                )
-            }.getOrDefault(MotionSmoothness.BALANCED)
-            val reduceMotion = root.optBoolean("reduceMotion", false)
-
-            fun safeArray(name: String, max: Int): JSONArray {
-                val array = root.optJSONArray(name) ?: JSONArray()
-                require(array.length() <= max)
-                return array
-            }
-
-            val favoritesArray = safeArray("favorites", MAX_BACKUP_ITEMS)
-            val restoredFavorites = buildSet {
-                for (i in 0 until favoritesArray.length()) {
-                    val value = favoritesArray.optString(i).trim()
-                    if (value.length in 1..256) add(value)
-                }
-            }
-            val chatArray = safeArray("chatNotificationPackages", 1)
-            val restoredChat = buildList {
-                for (i in 0 until chatArray.length()) {
-                    val value = chatArray.optString(i).trim()
-                    if (value.length in 1..256) add(value)
-                }
-            }.distinct().take(1)
-            val orderArray = safeArray("homeAppOrder", MAX_BACKUP_ITEMS)
-            val restoredOrder = buildList {
-                for (i in 0 until orderArray.length()) {
-                    val value = orderArray.optString(i).trim()
-                    if (value.length in 1..256) add(value)
-                }
-            }.distinct()
-            val excludedArray = safeArray("excludedHomeApps", MAX_BACKUP_ITEMS)
-            val restoredExcluded = buildSet {
-                for (i in 0 until excludedArray.length()) {
-                    val value = excludedArray.optString(i).trim()
-                    if (value.length in 1..256) add(value)
-                }
-            }
-
-            val positionsObject = root.optJSONObject("tilePositions") ?: JSONObject()
-            val restoredPositions = mutableSetOf<String>()
-            val positionKeys = positionsObject.keys().asSequence().toList()
-            require(positionKeys.size <= MAX_BACKUP_ITEMS)
-            positionKeys.forEach { id ->
-                val item = positionsObject.optJSONObject(id) ?: return@forEach
-                val column = item.optInt("column", -1)
-                val row = item.optInt("row", -1)
-                if (id.length in 1..128 && column in 0..99 && row in 0..999) {
-                    restoredPositions.add(id + "|" + column + "|" + row)
-                }
-            }
-
-            val sizesObject = root.optJSONObject("tileSizes") ?: JSONObject()
-            val restoredSizes = mutableSetOf<String>()
-            val sizeKeys = sizesObject.keys().asSequence().toList()
-            require(sizeKeys.size <= MAX_BACKUP_ITEMS)
-            sizeKeys.forEach { id ->
-                val tileSize = runCatching { NeoTileSize.valueOf(sizesObject.optString(id)) }.getOrNull()
-                if (id.length in 1..128 && tileSize != null) restoredSizes.add(id + "|" + tileSize.name)
-            }
-
-            val wallpaper = root.optString("wallpaperUri", "").takeIf { it.startsWith("content://") && it.length <= 2048 }
-            val iconPack = root.optString("iconPackPackage", "").takeIf {
-                it.matches(Regex("[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)+"))
-            }
-
-            val editor = prefs.edit()
-                .putString(KEY_THEME, theme.name)
-                .putString(KEY_DESIGN_PRESET, designPreset.name)
-                .putBoolean(KEY_24_HOUR, root.optBoolean("use24Hour", true))
-                .putBoolean(KEY_SHOW_AM_PM, root.optBoolean("showAmPm", true))
-                                .putInt(KEY_HOME_APP_COUNT, count)
-                                                .putBoolean(KEY_WEATHER, root.optBoolean("showWeather", false))
-                .putStringSet(KEY_CHAT_NOTIFICATION_PACKAGES, restoredChat.toSet())
-                .putStringSet(KEY_FAVORITES, restoredFavorites)
-                .putStringSet(KEY_TILE_POSITIONS, restoredPositions)
-                .putStringSet(KEY_TILE_SIZES, restoredSizes)
-                .putString(KEY_APP_TILE_CONTENT_MODE, contentMode.name)
-                .putString(KEY_CLOCK_STYLE, typography.name)
-                .putString(KEY_MOTION_SMOOTHNESS, motionSmoothness.name)
-                .putBoolean(KEY_REDUCE_MOTION, reduceMotion)
-                .putString(KEY_HOME_APP_ORDER, JSONArray(restoredOrder).toString())
-                .putStringSet(KEY_EXCLUDED_HOME_APPS, restoredExcluded)
-            if (wallpaper == null) editor.remove(KEY_WALLPAPER_URI) else editor.putString(KEY_WALLPAPER_URI, wallpaper)
-            if (iconPack == null) editor.remove(KEY_ICON_PACK_PACKAGE) else editor.putString(KEY_ICON_PACK_PACKAGE, iconPack)
-            editor.putString(KEY_NOTE_ITEMS, itemsToJson(jsonToItems(root.optJSONArray("noteItems"))).toString())
-            editor.putString(KEY_TASK_ITEMS, itemsToJson(jsonToItems(root.optJSONArray("taskItems"))).toString())
-            editor.putBoolean(KEY_HOME_APPS_INITIALIZED, true)
-            editor.commit()
-        }.getOrDefault(false)
-    }
+    fun importBackupJson(raw: String): Boolean = LauncherBackupManager(this).importBackupJson(raw)
 
     fun resetCustomizations() {
         prefs.edit().apply {
@@ -525,26 +384,6 @@ class LauncherPreferences(context: Context) {
             remove(KEY_HOME_CLOCK_LONG_PRESS)
             remove(KEY_HOME_APPS_INITIALIZED)
             apply()
-        }
-    }
-
-    private fun itemsToJson(items: List<NeoListItem>): JSONArray =
-        JSONArray().apply {
-            items.take(MAX_BACKUP_ITEMS).forEach {
-                put(JSONObject().put("text", it.text.take(1000)).put("checked", it.checked))
-            }
-        }
-
-    private fun jsonToItems(array: JSONArray?): List<NeoListItem> {
-        if (array == null || array.length() > MAX_BACKUP_ITEMS) return emptyList()
-        return buildList {
-            for (i in 0 until array.length()) {
-                val item = array.optJSONObject(i) ?: continue
-                val value = item.optString("text").trim()
-                if (value.isNotEmpty() && value.length <= 1000) {
-                    add(NeoListItem(value, item.optBoolean("checked", false)))
-                }
-            }
         }
     }
 
@@ -588,35 +427,35 @@ class LauncherPreferences(context: Context) {
     }
 
     companion object {
-        private const val KEY_THEME = "theme"
-        private const val KEY_DESIGN_PRESET = "design_preset"
-        private const val KEY_24_HOUR = "use_24_hour"
-        private const val KEY_SHOW_AM_PM = "show_am_pm"
-        private const val KEY_HOME_APP_COUNT = "home_app_count"
-        private const val KEY_WEATHER = "show_weather"
-        private const val KEY_CHAT_NOTIFICATION_PACKAGES = "chat_notification_packages"
-        private const val KEY_FAVORITES = "favorites"
-        private const val KEY_TILE_POSITIONS = "tile_positions"
-        private const val KEY_TILE_SIZES = "tile_sizes"
-        private const val KEY_APP_TILE_CONTENT_MODE = "app_tile_content_mode"
-        private const val KEY_CLOCK_STYLE = "clock_style"
-        private const val KEY_WALLPAPER_URI = "wallpaper_uri"
-        private const val KEY_NOTE_TEXT = "note_text"
-        private const val KEY_NOTE_ITEMS = "note_items"
-        private const val KEY_TASK_ITEMS = "task_items"
-        private const val KEY_HOME_APP_ORDER = "home_app_order"
-        private const val KEY_EXCLUDED_HOME_APPS = "excluded_home_apps"
-        private const val KEY_TASK_TEXT = "task_text"
-        private const val KEY_ICON_PACK_PACKAGE = "icon_pack_package"
-        private const val KEY_MOTION_SMOOTHNESS = "motion_smoothness"
-        private const val KEY_REDUCE_MOTION = "reduce_motion"
-        private const val KEY_SETTINGS_SWIPE = "settings_swipe_enabled"
-        private const val KEY_SWIPE_DOWN_NOTIFICATIONS = "swipe_down_notifications_enabled"
-        private const val KEY_HOME_CLOCK_DOUBLE_TAP = "home_clock_double_tap_enabled"
-        private const val KEY_HOME_CLOCK_LONG_PRESS = "home_clock_long_press_enabled"
-        private const val KEY_HOME_APPS_INITIALIZED = "home_apps_initialized"
-        private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
-        private const val KEY_LAST_MUSIC_PACKAGE = "last_music_package"
-        private const val MAX_BACKUP_ITEMS = 500
+        internal const val KEY_THEME = "theme"
+        internal const val KEY_DESIGN_PRESET = "design_preset"
+        internal const val KEY_24_HOUR = "use_24_hour"
+        internal const val KEY_SHOW_AM_PM = "show_am_pm"
+        internal const val KEY_HOME_APP_COUNT = "home_app_count"
+        internal const val KEY_WEATHER = "show_weather"
+        internal const val KEY_CHAT_NOTIFICATION_PACKAGES = "chat_notification_packages"
+        internal const val KEY_FAVORITES = "favorites"
+        internal const val KEY_TILE_POSITIONS = "tile_positions"
+        internal const val KEY_TILE_SIZES = "tile_sizes"
+        internal const val KEY_APP_TILE_CONTENT_MODE = "app_tile_content_mode"
+        internal const val KEY_CLOCK_STYLE = "clock_style"
+        internal const val KEY_WALLPAPER_URI = "wallpaper_uri"
+        internal const val KEY_NOTE_TEXT = "note_text"
+        internal const val KEY_NOTE_ITEMS = "note_items"
+        internal const val KEY_TASK_ITEMS = "task_items"
+        internal const val KEY_HOME_APP_ORDER = "home_app_order"
+        internal const val KEY_EXCLUDED_HOME_APPS = "excluded_home_apps"
+        internal const val KEY_TASK_TEXT = "task_text"
+        internal const val KEY_ICON_PACK_PACKAGE = "icon_pack_package"
+        internal const val KEY_MOTION_SMOOTHNESS = "motion_smoothness"
+        internal const val KEY_REDUCE_MOTION = "reduce_motion"
+        internal const val KEY_SETTINGS_SWIPE = "settings_swipe_enabled"
+        internal const val KEY_SWIPE_DOWN_NOTIFICATIONS = "swipe_down_notifications_enabled"
+        internal const val KEY_HOME_CLOCK_DOUBLE_TAP = "home_clock_double_tap_enabled"
+        internal const val KEY_HOME_CLOCK_LONG_PRESS = "home_clock_long_press_enabled"
+        internal const val KEY_HOME_APPS_INITIALIZED = "home_apps_initialized"
+        internal const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
+        internal const val KEY_LAST_MUSIC_PACKAGE = "last_music_package"
+        internal const val MAX_BACKUP_ITEMS = 500
     }
 }
