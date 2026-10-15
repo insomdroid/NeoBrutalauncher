@@ -1,91 +1,54 @@
 package com.aldiandrew.neobrutallauncher
 
-import android.Manifest
-import android.app.Activity
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.positionChangeIgnoreConsumed
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.drawable.toBitmap
-import androidx.core.app.NotificationManagerCompat
-import java.text.SimpleDateFormat
 import java.util.Locale
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlin.math.abs
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun SettingsScreen(
@@ -738,227 +701,5 @@ internal fun SettingsScreen(
 
     if (showResetConfirm) {
         AlertDialog(onDismissRequest = { showResetConfirm = false }, title = { Text("RESET ALL CUSTOMIZATIONS", fontFamily = BrutalTypography.Display) }, text = { Text("This clears launcher preferences, tile layout, pinned apps, notes/tasks, wallpaper and icon-pack selection. This cannot be undone.") }, dismissButton = { SettingsActionButton("CANCEL", BrutalColors.White) { showResetConfirm = false } }, confirmButton = { SettingsActionButton("RESET", BrutalColors.Pink) { showResetConfirm = false; onResetAll() } })
-    }
-}
-
-@Composable
-private fun SettingsActionButton(
-    title: String,
-    background: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    val surface = MaterialTheme.colorScheme.surface
-    val onSurface = MaterialTheme.colorScheme.onSurface
-    val normalizedTitle = title.uppercase(Locale.getDefault())
-    val destructive = background == BrutalColors.Pink ||
-        normalizedTitle.startsWith("CLEAR") || normalizedTitle.contains("RESET") ||
-        normalizedTitle == "DELETE" || normalizedTitle.startsWith("REMOVE")
-    val neutral = !destructive && normalizedTitle == "CANCEL"
-    val resolvedBackground = when {
-        destructive -> BrutalColors.Pink
-        neutral -> surface
-        else -> BrutalColors.Yellow
-    }
-    BrutalPressableBlock(
-        modifier = modifier.fillMaxWidth(),
-        background = resolvedBackground,
-        borderWidth = 2.dp,
-        shadowX = 0.dp,
-        shadowY = 0.dp,
-        onClick = onClick
-    ) {
-        Text(
-            text = title.lowercase(Locale.getDefault()).split(" ").joinToString(" ") { word -> word.replaceFirstChar { it.titlecase(Locale.getDefault()) } },
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = if (neutral) onSurface else BrutalColors.Ink,
-            letterSpacing = 0.5.sp
-        )
-    }
-}
-
-@Composable
-private fun SettingsSectionTitle(title: String) {
-    val readableTitle = title.lowercase(Locale.getDefault()).split(" ").joinToString(" ") { word ->
-        word.replaceFirstChar { it.titlecase(Locale.getDefault()) }
-    }
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 3.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .width(4.dp)
-                .height(18.dp)
-                .background(BrutalColors.Yellow)
-                .border(1.dp, MaterialTheme.colorScheme.onSurface)
-        )
-        Text(
-            text = readableTitle,
-            modifier = Modifier.weight(1f),
-            fontSize = 14.sp,
-            lineHeight = 18.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun SettingsOptionButton(
-    label: String,
-    selected: Boolean,
-    background: Color,
-    modifier: Modifier,
-    onClick: () -> Unit
-) {
-    BrutalPressableBlock(
-        modifier = modifier.heightIn(min = 42.dp),
-        background = if (selected) {
-            if (label in setOf("NEO BRUTAL DEFAULT", "VIOLET GRID")) {
-                background
-            } else {
-                BrutalColors.Yellow
-            }
-        } else {
-            MaterialTheme.colorScheme.surface
-        },
-        borderWidth = 2.dp,
-        shadowX = 0.dp,
-        shadowY = 0.dp,
-        onClick = onClick
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-            fontSize = 12.sp,
-            lineHeight = 14.sp,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            fontWeight = FontWeight.SemiBold,
-            color = if (selected) BrutalColors.Ink else MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
-
-@Composable
-private fun SettingsSwitch(
-    title: String,
-    description: String,
-    checked: Boolean,
-    background: Color,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    BrutalBlock(
-        modifier = Modifier.fillMaxWidth(),
-        background = MaterialTheme.colorScheme.surface,
-        borderWidth = 2.dp,
-        shadowX = 0.dp,
-        shadowY = 0.dp,
-        contentPadding = 12.dp
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title.lowercase(Locale.getDefault()).split(" ").joinToString(" ") { word -> word.replaceFirstChar { it.titlecase(Locale.getDefault()) } },
-                    fontSize = 14.sp,
-                    lineHeight = 18.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = description,
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp,
-                    fontWeight = FontWeight.Normal
-                )
-            }
-
-            BrutalToggle(
-                checked = checked,
-                accent = background,
-                onCheckedChange = onCheckedChange
-            )
-        }
-    }
-}
-
-@Composable
-private fun ThemeButton(
-    label: String,
-    selected: Boolean,
-    background: Color,
-    modifier: Modifier,
-    onClick: () -> Unit
-) {
-    BrutalPressableBlock(
-        modifier = modifier,
-        background = if (selected) background else MaterialTheme.colorScheme.surface,
-        borderWidth = if (selected) NeoBrutalTokens.Border.Strong else NeoBrutalTokens.Border.Secondary,
-        shadowX = NeoBrutalTokens.Shadow.Medium,
-        shadowY = NeoBrutalTokens.Shadow.Medium,
-        onClick = onClick
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-            fontFamily = BrutalTypography.Display,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Normal,
-            color = if (selected) BrutalColors.Ink else MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
-
-@Composable
-fun BrutalActionButton(
-    title: String,
-    background: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    BrutalPressableBlock(
-        modifier = modifier.fillMaxWidth(),
-        background = background,
-        borderWidth = NeoBrutalTokens.Border.Primary,
-        shadowX = NeoBrutalTokens.Shadow.Medium,
-        shadowY = NeoBrutalTokens.Shadow.Medium,
-        onClick = onClick
-    ) {
-        Text(
-            text = title,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Black,
-            color = BrutalColors.Ink,
-            letterSpacing = 0.5.sp
-        )
-    }
-}
-
-@android.annotation.SuppressLint("WrongConstant", "PrivateApi")
-internal fun expandNotificationPanel(context: android.content.Context) {
-    try {
-        val statusBarService = context.getSystemService("statusbar")
-            ?: throw IllegalStateException("Android status bar service is unavailable")
-        Class.forName("android.app.StatusBarManager")
-            .getMethod("expandNotificationsPanel")
-            .invoke(statusBarService)
-    } catch (error: Exception) {
-        android.util.Log.w(
-            "NeoBrutalLauncher",
-            "Cannot expand notification shade on this device",
-            error
-        )
     }
 }
