@@ -1,0 +1,65 @@
+name: Vendor font assets
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/vendor-fonts.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  vendor-fonts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download pinned font files and OFL licenses
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -s app/src/main/res/font/anton_regular.ttf && -s app/src/main/res/font/space_grotesk_regular.ttf && -s app/src/main/res/font/space_grotesk_bold.ttf ]]; then
+            echo "Font assets are already vendored."
+            exit 0
+          fi
+
+          mkdir -p app/src/main/res/font licenses/fonts
+          curl --fail --location --retry 3 \
+            "https://raw.githubusercontent.com/googlefonts/AntonFont/beb92fcad87808357123bb66881b4032dc96efe7/fonts/Anton-Regular.ttf" \
+            --output app/src/main/res/font/anton_regular.ttf
+          curl --fail --location --retry 3 \
+            "https://raw.githubusercontent.com/floriankarsten/space-grotesk/03507d024a01282884232081fc6011c09ff4e849/fonts/ttf/static/SpaceGrotesk-Regular.ttf" \
+            --output app/src/main/res/font/space_grotesk_regular.ttf
+          curl --fail --location --retry 3 \
+            "https://raw.githubusercontent.com/floriankarsten/space-grotesk/03507d024a01282884232081fc6011c09ff4e849/fonts/ttf/static/SpaceGrotesk-Bold.ttf" \
+            --output app/src/main/res/font/space_grotesk_bold.ttf
+          curl --fail --location --retry 3 \
+            "https://raw.githubusercontent.com/googlefonts/AntonFont/beb92fcad87808357123bb66881b4032dc96efe7/OFL.txt" \
+            --output licenses/fonts/Anton-OFL.txt
+          curl --fail --location --retry 3 \
+            "https://raw.githubusercontent.com/floriankarsten/space-grotesk/03507d024a01282884232081fc6011c09ff4e849/OFL.txt" \
+            --output licenses/fonts/Space-Grotesk-OFL.txt
+
+          test -s app/src/main/res/font/anton_regular.ttf
+          test -s app/src/main/res/font/space_grotesk_regular.ttf
+          test -s app/src/main/res/font/space_grotesk_bold.ttf
+          test -s licenses/fonts/Anton-OFL.txt
+          test -s licenses/fonts/Space-Grotesk-OFL.txt
+
+      - name: Commit vendored assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/main/res/font/anton_regular.ttf app/src/main/res/font/space_grotesk_regular.ttf app/src/main/res/font/space_grotesk_bold.ttf licenses/fonts/Anton-OFL.txt licenses/fonts/Space-Grotesk-OFL.txt
+          if git diff --cached --quiet; then
+            echo "No font asset changes to commit."
+            exit 0
+          fi
+          git commit -m "Vendor font assets and include OFL licenses"
+          git push
