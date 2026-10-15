@@ -664,7 +664,7 @@ private fun LauncherPageHost(
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
-            beyondViewportPageCount = 0,
+            beyondViewportPageCount = 1,
             userScrollEnabled = true,
             key = { it }
         ) { page ->
