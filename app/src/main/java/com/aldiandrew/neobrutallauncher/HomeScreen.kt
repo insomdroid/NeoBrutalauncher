@@ -191,84 +191,16 @@ internal fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             item(key = "top-bar") {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    BrutalBlock(
-                        modifier = Modifier.weight(1f).padding(end = 8.dp).combinedClickable(
-                            onClick = {},
-                            onDoubleClick = if (homeClockDoubleTapEnabled) onOpenSettings else null,
-                            onLongClick = if (homeClockLongPressEnabled) onOpenApps else null
-                        ),
-                        background = BrutalColors.Cyan,
-                        borderWidth = 3.dp,
-                        shadowX = 4.dp,
-                        shadowY = 4.dp
-                    ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(1.dp)
-                        ) {
-                            Text(
-                                text = time.format(now),
-                                fontFamily = BrutalTypography.Display,
-                                fontSize = 23.sp,
-                                lineHeight = 24.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 1.2.sp,
-                                color = BrutalColors.Ink
-                            )
-                            Text(
-                                text = (longDay.format(now) + " / " + longDate.format(now)).uppercase(Locale.getDefault()),
-                                fontSize = 8.sp,
-                                lineHeight = 9.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 0.4.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                color = BrutalColors.Ink
-                            )
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .width(106.dp)
-                            .clickable(onClick = onOpenSettings)
-                    ) {
-                        BrutalBlock(
-                            modifier = Modifier.fillMaxWidth(),
-                            background = BrutalColors.Pink,
-                            borderWidth = 3.dp,
-                            shadowX = 4.dp,
-                            shadowY = 4.dp
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Settings,
-                                    contentDescription = "Settings",
-                                    tint = BrutalColors.Ink,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(Modifier.width(5.dp))
-                                Text(
-                                    text = "SETTINGS",
-                                    fontFamily = BrutalTypography.Display,
-                                    modifier = Modifier,
-                                    textAlign = TextAlign.Center,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Normal,
-                                    color = BrutalColors.Ink
-                                )
-                            }
-                        }
-                    }
-                }
+                HomeTopBar(
+                    now = now,
+                    timeFormatter = time,
+                    longDayFormatter = longDay,
+                    longDateFormatter = longDate,
+                    homeClockDoubleTapEnabled = homeClockDoubleTapEnabled,
+                    homeClockLongPressEnabled = homeClockLongPressEnabled,
+                    onOpenSettings = onOpenSettings,
+                    onOpenApps = onOpenApps
+                )
             }
 
             item(key = "home-quote") {
@@ -281,141 +213,35 @@ internal fun HomeScreen(
             }
 
             item(key = "launchable-apps") {
-                NeoTileGrid(
-                        tiles = buildList {
-                            launchableApps.forEachIndexed { index, app ->
-                                val id = "app_" + app.packageName + "_" + app.activityName
-                                val defaultSize = when {
-                                    index < 2 -> NeoTileSize.HORIZONTAL
-                                    else -> NeoTileSize.SMALL
-                                }
-                                val size = tileSizes[id] ?: defaultSize
-                                val stableVariant = appTileLayoutVariant(app, size)
-                                val tileColor = palette[Math.floorMod(app.packageName.hashCode(), palette.size)]
-
-                                add(
-                                    NeoTileSpec(
-                                        id = id,
-                                        size = size,
-                                        label = app.label.uppercase(),
-                                        onClick = { onLaunch(app) }
-                                    ) {
-                                        AppTile(
-                                            app = app,
-                                            background = tileColor,
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentMode = appTileContentMode,
-                                            tileSize = size,
-                                            variant = stableVariant
-                                        )
-                                    }
-                                )
-                            }
-                            add(
-                                NeoTileSpec(
-                                    id = "home_music",
-                                    size = tileSizes["home_music"] ?: NeoTileSize.FOUR_BY_ONE,
-                                    label = "MUSIC"
-                                ) {
-                                    NeoMusicTile(
-                                        context = context,
-                                        modifier = Modifier.fillMaxSize(),
-                                        background = homeMusicBackground,
-                                        textColor = if (isDarkTheme) BrutalColors.DarkWhite else BrutalColors.Ink,
-                                        onLongClick = {
-                                            selectedTile = NeoTileSpec(
-                                                id = "home_music",
-                                                size = tileSizes["home_music"] ?: NeoTileSize.FOUR_BY_ONE,
-                                                label = "MUSIC"
-                                            ) {}
-                                        },
-                                        interactionEnabled = !tileEditMode
-                                    )
-                                }
-                            )
-                        },
-                        positions = tilePositions.filterKeys { appTileIds.contains(it) },
-                        onPositionsChange = onTilePositionsChange,
-                        onTileLongPress = { selectedTile = it },
-                        onTileEdit = { selectedTile = it },
-                        onTileMoveFinished = { tileEditMode = false },
-                        editMode = tileEditMode,
-                        modifier = Modifier.fillMaxWidth(),
-                        gap = 10.dp
+                HomeAppTiles(
+                    context = context,
+                    launchableApps = launchableApps,
+                    tileSizes = tileSizes,
+                    palette = palette,
+                    homeMusicBackground = homeMusicBackground,
+                    isDarkTheme = isDarkTheme,
+                    appTileContentMode = appTileContentMode,
+                    onLaunch = onLaunch,
+                    onSelectTile = { selectedTile = it },
+                    tileEditMode = tileEditMode,
+                    tilePositions = tilePositions,
+                    appTileIds = appTileIds,
+                    onTilePositionsChange = onTilePositionsChange,
+                    onTileMoveFinished = { tileEditMode = false }
                 )
             }
 
             item(key = "system-tiles") {
-                NeoTileGrid(
-                    tiles = buildList {
-                        add(
-                            NeoTileSpec(
-                                id = "system_battery",
-                                size = NeoTileSize.SMALL,
-                                label = "BATTERY"
-                            ) {
-                                BatteryTile(
-                                    context = context,
-                                    modifier = Modifier.fillMaxSize(),
-                                    background = BrutalColors.Yellow
-                                )
-                            }
-                        )
-                        add(
-                            NeoTileSpec(
-                                id = "system_network",
-                                size = NeoTileSize.SMALL,
-                                label = "NETWORK"
-                            ) {
-                                NeoNetworkTile(
-                                    context = context,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
-                        )
-                        if (showWeather) {
-                            add(
-                                NeoTileSpec(
-                                    id = "system_weather",
-                                    size = NeoTileSize.SMALL,
-                                    label = "WEATHER",
-                                    onClick = onRefreshWeather
-                                ) {
-                                    NeoWeatherTile(
-                                        context = context,
-                                        refreshToken = weatherRefreshToken,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                }
-                            )
-                        }
-                    },
-                    positions = emptyMap(),
-                    onPositionsChange = {},
-                    modifier = Modifier.fillMaxWidth(),
-                    gap = 10.dp
+                HomeSystemTiles(
+                    context = context,
+                    showWeather = showWeather,
+                    weatherRefreshToken = weatherRefreshToken,
+                    onRefreshWeather = onRefreshWeather
                 )
             }
 
             item(key = "home-quote-image") {
-                NeoTileGrid(
-                    tiles = listOf(
-                        NeoTileSpec(
-                            id = "home_quote_image",
-                            size = NeoTileSize.FOUR_BY_ONE,
-                            label = "QUOTE"
-                        ) {
-                            NeoQuoteImageTile(
-                                quote = homeQuotePair.second,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    ),
-                    positions = emptyMap(),
-                    onPositionsChange = {},
-                    modifier = Modifier.fillMaxWidth(),
-                    gap = 10.dp
-                )
+                HomeQuoteImage(quote = homeQuotePair.second)
             }
 
         }
