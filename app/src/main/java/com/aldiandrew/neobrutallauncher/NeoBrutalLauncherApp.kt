@@ -115,6 +115,7 @@ fun NeoBrutalLauncherApp() {
     var motionSmoothness by remember { mutableStateOf(preferences.motionSmoothness()) }
     var reduceMotion by remember { mutableStateOf(preferences.reduceMotion()) }
     var settingsSwipeEnabled by remember { mutableStateOf(preferences.settingsSwipeEnabled()) }
+    var swipeDownNotifications by remember { mutableStateOf(preferences.swipeDownNotifications()) }
     var homeClockDoubleTapEnabled by remember { mutableStateOf(preferences.homeClockDoubleTapEnabled()) }
     var homeClockLongPressEnabled by remember { mutableStateOf(preferences.homeClockLongPressEnabled()) }
     var locationPermissionGranted by remember {
@@ -340,6 +341,7 @@ fun NeoBrutalLauncherApp() {
                     motionSmoothness = motionSmoothness,
                     reduceMotion = reduceMotion,
                     settingsSwipeEnabled = settingsSwipeEnabled,
+                    swipeDownNotifications = swipeDownNotifications,
                     homeClockDoubleTapEnabled = homeClockDoubleTapEnabled,
                     homeClockLongPressEnabled = homeClockLongPressEnabled,
                     wallpaperUri = wallpaperUri,
@@ -456,6 +458,10 @@ fun NeoBrutalLauncherApp() {
                         settingsSwipeEnabled = it
                         preferences.setSettingsSwipeEnabled(it)
                     },
+                    onSwipeDownNotificationsChange = {
+                        swipeDownNotifications = it
+                        preferences.setSwipeDownNotifications(it)
+                    },
                     onHomeClockDoubleTapChange = {
                         homeClockDoubleTapEnabled = it
                         preferences.setHomeClockDoubleTapEnabled(it)
@@ -497,6 +503,7 @@ fun NeoBrutalLauncherApp() {
                         currentPage = currentPage,
                         motionConfig = motionConfig,
                         wallpaperUri = wallpaperUri,
+                        swipeDownNotifications = swipeDownNotifications,
                     onPageChange = {
                         currentPage = it.coerceIn(0, 2)
                         if (currentPage == 1) refreshApps()
@@ -577,6 +584,7 @@ private fun LauncherPageHost(
     currentPage: Int,
     motionConfig: NeoMotionConfig,
     wallpaperUri: String?,
+    swipeDownNotifications: Boolean,
     onPageChange: (Int) -> Unit,
     content: @Composable (Int) -> Unit
 ) {
@@ -610,8 +618,8 @@ private fun LauncherPageHost(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .pointerInput(pagerState.currentPage) {
-                if (pagerState.currentPage != 0) return@pointerInput
+            .pointerInput(pagerState.currentPage, swipeDownNotifications) {
+                if (pagerState.currentPage != 0 || !swipeDownNotifications) return@pointerInput
                 val triggerDistance = 100.dp.toPx()
                 val horizontalSlop = 24.dp.toPx()
                 awaitEachGesture {
@@ -1598,6 +1606,7 @@ private fun SettingsScreen(
     motionSmoothness: MotionSmoothness,
     reduceMotion: Boolean,
     settingsSwipeEnabled: Boolean,
+    swipeDownNotifications: Boolean,
     homeClockDoubleTapEnabled: Boolean,
     homeClockLongPressEnabled: Boolean,
     wallpaperUri: String?,
@@ -1622,6 +1631,7 @@ private fun SettingsScreen(
     onMotionSmoothnessChange: (MotionSmoothness) -> Unit,
     onReduceMotionChange: (Boolean) -> Unit,
     onSettingsSwipeChange: (Boolean) -> Unit,
+    onSwipeDownNotificationsChange: (Boolean) -> Unit,
     onHomeClockDoubleTapChange: (Boolean) -> Unit,
     onHomeClockLongPressChange: (Boolean) -> Unit,
     onChooseWallpaper: () -> Unit,
@@ -1968,8 +1978,7 @@ private fun SettingsScreen(
         SettingsSectionTitle("GESTURES")
         BrutalBlock(Modifier.fillMaxWidth(), background = uiSurface, borderWidth = 2.dp, shadowX = 0.dp, shadowY = 0.dp, shadowColor = if (isDark) BrutalColors.Yellow else BrutalColors.Ink) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Home clock gestures", fontSize = 13.sp, fontWeight = FontWeight.Black, color = uiOnSurface)
-                Text("Use the clock tile as a shortcut. These gestures do not need Accessibility, Device Admin or other special access.", fontSize = 12.sp, lineHeight = 15.sp, color = uiOnSurface.copy(alpha = .75f))
+                SettingsSwitch("SWIPE DOWN TO OPEN NOTIFICATIONS", "Swipe down on Home to open the notification panel.", swipeDownNotifications, BrutalColors.Cyan, onSwipeDownNotificationsChange)
                 SettingsSwitch("DOUBLE-TAP CLOCK → SETTINGS", "Open Settings by double-tapping the Home clock.", homeClockDoubleTapEnabled, BrutalColors.Yellow, onHomeClockDoubleTapChange)
                 SettingsSwitch("LONG-PRESS CLOCK → APPS", "Open the Apps page by long-pressing the Home clock.", homeClockLongPressEnabled, BrutalColors.Pink, onHomeClockLongPressChange)
                 Text("Permissions needed: none.", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = uiOnSurface.copy(alpha = .7f))
