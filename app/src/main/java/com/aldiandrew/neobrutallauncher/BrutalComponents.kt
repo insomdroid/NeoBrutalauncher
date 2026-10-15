@@ -28,6 +28,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 
+private fun brutalContentColor(background: Color): Color = when (background) {
+    BrutalColors.DarkPaper,
+    BrutalColors.DarkTile,
+    BrutalColors.Ink -> BrutalColors.DarkWhite
+    else -> BrutalColors.Ink
+}
+
 @Composable
 fun BrutalBlock(
     modifier: Modifier = Modifier,
