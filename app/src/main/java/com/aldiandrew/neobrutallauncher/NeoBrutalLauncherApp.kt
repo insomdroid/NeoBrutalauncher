@@ -13,6 +13,8 @@ import androidx.compose.foundation.border
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
@@ -576,6 +578,8 @@ private fun LauncherPageHost(
     onPageChange: (Int) -> Unit,
     content: @Composable (Int) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+
     val pagerState = rememberPagerState(
         initialPage = currentPage,
         pageCount = { 3 }
@@ -604,6 +608,43 @@ private fun LauncherPageHost(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .pointerInput(pagerState.currentPage) {
+                if (pagerState.currentPage != 0) return@pointerInput
+                val triggerDistance = 100.dp.toPx()
+                val horizontalSlop = 24.dp.toPx()
+                awaitEachGesture {
+                    val down = awaitFirstDown(
+                        pass = PointerEventPass.Initial,
+                        requireUnconsumed = false
+                    )
+                    var totalX = 0f
+                    var totalY = 0f
+                    var horizontalGesture = false
+                    var triggered = false
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                        if (!change.pressed) break
+
+                        val delta = change.positionChangeIgnoreConsumed()
+                        totalX += delta.x
+                        totalY += delta.y
+
+                        if (
+                            kotlin.math.abs(totalX) > horizontalSlop &&
+                            kotlin.math.abs(totalX) > kotlin.math.abs(totalY) * 1.15f
+                        ) {
+                            horizontalGesture = true
+                        }
+
+                        if (!horizontalGesture && !triggered && totalY >= triggerDistance) {
+                            triggered = true
+                            expandNotificationPanel(context)
+                        }
+                        if (triggered) change.consume()
+                    }
+                }
+            }
     ) {
         BrutalWallpaper(
             uriString = wallpaperUri,
@@ -2393,6 +2434,23 @@ fun BrutalActionButton(
             fontWeight = FontWeight.Black,
             color = BrutalColors.Ink,
             letterSpacing = 0.5.sp
+        )
+    }
+}
+
+@android.annotation.SuppressLint("WrongConstant", "PrivateApi")
+private fun expandNotificationPanel(context: android.content.Context) {
+    try {
+        val statusBarService = context.getSystemService("statusbar")
+            ?: throw IllegalStateException("Android status bar service is unavailable")
+        Class.forName("android.app.StatusBarManager")
+            .getMethod("expandNotificationsPanel")
+            .invoke(statusBarService)
+    } catch (error: Exception) {
+        android.util.Log.w(
+            "NeoBrutalLauncher",
+            "Cannot expand notification shade on this device",
+            error
         )
     }
 }
