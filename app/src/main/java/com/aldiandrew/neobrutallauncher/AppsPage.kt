@@ -39,18 +39,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.drawable.toBitmap
 
 private val Alphabet = ('A'..'Z').toList()
 
@@ -241,8 +238,8 @@ fun AppsPage(
                             items = sortedApps,
                             key = { _, app -> app.packageName + "/" + app.activityName }
                         ) { index, app ->
-                            val iconBitmap = remember(app.packageName, app.icon) {
-                                app.icon.toBitmap(64, 64).asImageBitmap()
+                            val iconBitmap = remember(app.packageName, app.activityName, app.icon) {
+                                cachedAppIconBitmap(app)
                             }
 
                             val cardBackground = appPalette[index % appPalette.size]
