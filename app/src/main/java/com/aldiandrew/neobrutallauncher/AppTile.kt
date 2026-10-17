@@ -1,5 +1,8 @@
 package com.aldiandrew.neobrutallauncher
 
+import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
+import android.util.LruCache
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +29,44 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 
+private class AppIconBitmapKey(
+    private val packageName: String,
+    private val activityName: String,
+    private val drawable: Drawable
+) {
+    override fun equals(other: Any?): Boolean =
+        other is AppIconBitmapKey &&
+            packageName == other.packageName &&
+            activityName == other.activityName &&
+            drawable === other.drawable
+
+    override fun hashCode(): Int =
+        31 * (31 * packageName.hashCode() + activityName.hashCode()) +
+            System.identityHashCode(drawable)
+}
+
+private object AppIconBitmapCache {
+    private const val MAX_CACHE_BYTES = 2 * 1024 * 1024
+
+    private val cache = object : LruCache<AppIconBitmapKey, Bitmap>(MAX_CACHE_BYTES) {
+        override fun sizeOf(key: AppIconBitmapKey, value: Bitmap): Int =
+            value.byteCount.coerceAtLeast(1)
+    }
+
+    fun bitmapFor(app: AppInfo): Bitmap {
+        val key = AppIconBitmapKey(app.packageName, app.activityName, app.icon)
+        cache.get(key)?.let { return it }
+        return synchronized(cache) {
+            cache.get(key) ?: app.icon.toBitmap(64, 64).also { bitmap ->
+                cache.put(key, bitmap)
+            }
+        }
+    }
+}
+
+internal fun cachedAppIconBitmap(app: AppInfo) =
+    AppIconBitmapCache.bitmapFor(app).asImageBitmap()
+
 @Composable
 internal fun AppTile(
     app: AppInfo,
@@ -39,8 +80,8 @@ internal fun AppTile(
         // Capture the tile constraints before entering nested Box/Row content scopes.
         val availableWidth = maxWidth
         val availableHeight = maxHeight
-        val iconBitmap = remember(app.packageName, app.icon) {
-            app.icon.toBitmap(64, 64).asImageBitmap()
+        val iconBitmap = remember(app.packageName, app.activityName, app.icon) {
+            cachedAppIconBitmap(app)
         }
         val compactTile = tileSize == NeoTileSize.SMALL
         val iconSize = when (tileSize) {
