@@ -16,6 +16,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.coroutines.resume
@@ -30,6 +31,8 @@ data class WeatherData(
 )
 
 object WeatherRepository {
+
+    private const val MAX_RESPONSE_BYTES = 64 * 1024
 
     @Volatile
     private var cachedWeather: WeatherData? = null
@@ -248,8 +251,23 @@ object WeatherRepository {
                 )
             }
 
-            val response =
-                connection.inputStream.bufferedReader().use { it.readText() }
+            val response = connection.inputStream.use { input ->
+                val output = ByteArrayOutputStream()
+                val buffer = ByteArray(4096)
+                var totalBytes = 0
+
+                while (true) {
+                    val bytesRead = input.read(buffer)
+                    if (bytesRead < 0) break
+                    totalBytes += bytesRead
+                    if (totalBytes > MAX_RESPONSE_BYTES) {
+                        throw IllegalStateException("Weather response exceeded size limit")
+                    }
+                    output.write(buffer, 0, bytesRead)
+                }
+
+                output.toString(Charsets.UTF_8.name())
+            }
 
             val current = JSONObject(response).getJSONObject("current")
             val temperature = current.getDouble("temperature_2m")
