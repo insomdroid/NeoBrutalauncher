@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.graphics.drawable.Drawable
+import android.util.LruCache
 import org.xmlpull.v1.XmlPullParser
 
 data class IconPackInfo(
@@ -13,13 +14,18 @@ data class IconPackInfo(
 )
 
 class IconPackManager(private val context: Context) {
+    private companion object {
+        const val MAX_CACHED_MAPPINGS = 4096
+        const val MAX_CACHED_DRAWABLE_IDS = 256
+    }
+
     private val packageManager = context.packageManager
     private val drawableNameRegex = Regex("[A-Za-z0-9_]+")
     private var cachedPackage: String? = null
     private var cachedMappings: Map<String, String> = emptyMap()
     private var cachedResources: Resources? = null
-    // Resource-name lookup is stable for the selected pack; cache both found and missing IDs.
-    private val cachedDrawableIds = HashMap<String, Int>()
+    // Keep resource lookup memory bounded, including missing resource IDs.
+    private val cachedDrawableIds = LruCache<String, Int>(MAX_CACHED_DRAWABLE_IDS)
 
     fun installedIconPacks(): List<IconPackInfo> {
         val actions = listOf(
@@ -59,10 +65,12 @@ class IconPackManager(private val context: Context) {
             val resources = cachedResources ?: return@runCatching fallback
             val safeName = drawableName.takeIf(drawableNameRegex::matches)
                 ?: return@runCatching fallback
-            val drawableId = cachedDrawableIds.getOrPut(safeName) {
-                resources.getIdentifier(safeName, "drawable", packPackage)
+            val drawableId = cachedDrawableIds.get(safeName) ?: run {
+                val resolvedId = resources.getIdentifier(safeName, "drawable", packPackage)
                     .takeIf { it != 0 }
                     ?: resources.getIdentifier(safeName, "mipmap", packPackage)
+                cachedDrawableIds.put(safeName, resolvedId)
+                resolvedId
             }
             if (drawableId == 0) fallback
             else resources.getDrawable(drawableId, context.theme)
@@ -88,6 +96,7 @@ class IconPackManager(private val context: Context) {
                             val drawable = parser.getAttributeValue(null, "drawable")
                             if (!component.isNullOrBlank() && !drawable.isNullOrBlank()) {
                                 parsed[component] = drawable
+                                if (parsed.size >= MAX_CACHED_MAPPINGS) break
                             }
                         }
                     }
