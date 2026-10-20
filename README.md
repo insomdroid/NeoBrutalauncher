@@ -1,5 +1,7 @@
 # NB Launcher — Embrace Your Screen.
 
+**🌐 Website:** [Visit the NB Launcher website](https://insomdroid.github.io/NeoBrutalauncher/)
+
 **Neo-Brutalism for your Android homescreen. Because minimalism had its moment. lol.**
 
 Ever wondered what happens when someone who can't code tries to build an Android app with AI?
@@ -83,6 +85,7 @@ More features and improvements may come as development continues. This project i
 
 NB Launcher is open source, so you're free to explore the code and build it yourself.
 
+- **Website:** [Visit NB Launcher](https://insomdroid.github.io/NeoBrutalauncher/)
 - **Source code:** [Browse the repository](https://github.com/insomdroid/NeoBrutalauncher)
 - **Download:** [Get the latest build from GitHub Actions](https://github.com/insomdroid/NeoBrutalauncher/actions)
 - **Latest release:** [Download the APK](https://github.com/insomdroid/NeoBrutalauncher/releases)
